@@ -1,8 +1,8 @@
 Package.describe({
-  name: 'storeness:meteor-postgres',
+  name: 'endykaufman:meteor-postgres',
   version: '0.2.1',
   summary: 'PostgreSQL support for Meteor',
-  git: 'https://github.com/storeness/meteor-postgres',
+  git: 'https://github.com/EndyKaufman/meteor-postgres',
   documentation: 'README.md'
 });
 
@@ -36,28 +36,4 @@ Package.onUse(function (api) {
   ]);
 
   api.export('SQL');
-});
-
-Package.onTest(function (api) {
-  api.use('sanjo:jasmine@0.15.1');
-  api.use('coffeescript');
-  api.use('spacebars');
-  api.use('underscore');
-  api.use('storeness:meteor-postgres');
-
-  // Start postgres test-server
-  api.use('numtel:pg-server');
-  api.addFiles('tests/db-settings.pg.json');
-
-  api.addFiles([
-    'tests/jasmine/collectionSpec.coffee'
-  ]);
-
-  api.addFiles([
-    'tests/jasmine/client/clientSpec.coffee'
-  ], 'client');
-
-  api.addFiles([
-    'tests/jasmine/server/serverSpec.coffee'
-  ], 'server');
 });
