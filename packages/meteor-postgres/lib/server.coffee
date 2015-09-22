@@ -82,11 +82,10 @@ SQL.Server::createTable = (tableObj) ->
 
 
   @prevFunc = 'CREATE TABLE'
-  if @check @inputString, false, false
-    executeQuery = Meteor.wrapAsync(@exec, @)
-    executeQuery @inputString, []
-    executeQuery "DROP TRIGGER IF EXISTS #{watchTrigger} ON #{@table};", []
-    executeQuery "CREATE TRIGGER #{watchTrigger} AFTER INSERT OR DELETE OR UPDATE ON #{@table} FOR EACH ROW EXECUTE PROCEDURE notify_trigger_#{@table}();", []
+  executeQuery = Meteor.wrapAsync(@exec, @)
+  executeQuery @inputString, []
+  executeQuery "DROP TRIGGER IF EXISTS #{watchTrigger} ON #{@table};", []
+  executeQuery "CREATE TRIGGER #{watchTrigger} AFTER INSERT OR DELETE OR UPDATE ON #{@table} FOR EACH ROW EXECUTE PROCEDURE notify_trigger_#{@table}();", []
 
   @clearAll()
   return
@@ -122,31 +121,26 @@ SQL.Server::fetch = ->
     starter = @updateString or @deleteString or @selectString
     input = if @inputString.length > 0 then @inputString else starter + @joinString + @whereString + @orderString + @limitString + @offsetString + @groupString + @havingString + ';'
 
-  if @check input, data, callback
-    if arguments.length is 0
-      executeQuery = Meteor.wrapAsync(@exec, @)
-      result = executeQuery(input, data, callback)
-      return result
-    else
-      @exec input, data, callback
+  if arguments.length is 0
+    executeQuery = Meteor.wrapAsync(@exec, @)
+    result = executeQuery(input, data, callback)
+    return result
+  else
+    @exec input, data, callback
   return
 
 SQL.Server::pg = pg
 
-SQL.Server::check = (input, data, cb) ->
-  return true
-
 SQL.Server::exec = (input, data, cb) ->
-  if @check input, data, cb
-    pg.connect @conString, (err, client, done) ->
-      if err and cb
-        cb err, null
-      console.log(err) if err
+  pg.connect @conString, (err, client, done) ->
+    if err and cb
+      cb err, null
+    console.log(err) if err
 
-      client.query input, data, (error, results) ->
-        done()
-        if cb
-          cb error, results
+    client.query input, data, (error, results) ->
+      done()
+      if cb
+        cb error, results
   @clearAll()
 
 ###*
@@ -180,17 +174,16 @@ SQL.Server::save = ->
     starter = @updateString or @deleteString or @selectString
     input = if @inputString.length > 0 then @inputString else starter + @joinString + @whereString + ';'
 
-  if @check input, data, callback 
-    if arguments.length is 0
-      executeQuery = Meteor.wrapAsync(@exec, @)
-      try
-        result = executeQuery(input, data, callback)
-        return result
-      catch e
-        console.error e.message
-        return e
-    else
-      @exec input, data, callback
+  if arguments.length is 0
+    executeQuery = Meteor.wrapAsync(@exec, @)
+    try
+      result = executeQuery(input, data, callback)
+      return result
+    catch e
+      console.error e.message
+      return e
+  else
+    @exec input, data, callback
   return
 
 ###*

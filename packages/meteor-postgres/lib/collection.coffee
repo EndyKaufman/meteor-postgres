@@ -126,17 +126,6 @@ SQL.Collection::publish = (collname, pubFunc) ->
   methodObj = {}
   context = @
 
-  methodObj[@saveMethod] = (input, dataArray) ->
-    context.save input, dataArray, (error, result) ->
-      if error
-        console.error error.message, input
-
-  methodObj[@fetchMethod] = (input, dataArray) ->
-    context.fetch input, dataArray, (error, result) ->
-      if error
-        console.error error.message, input
-
-  Meteor.methods methodObj
   Meteor.publish collname, ->
     # For this implementation to work you must call getCursor and provide a callback with the select
     # statement that needs to be reactive. The 'caboose' on the chain of calls must be autoSelect
