@@ -38,56 +38,88 @@ _.extend SQL.Server::, SQL.Sql::
 ###
 
 SQL.Server::createTable = (tableObj) ->
-  startString = "CREATE TABLE IF NOT EXISTS \"#{@table}\" ("
-  item = undefined
-  subKey = undefined
-  valOperator = undefined
-  inputString = ''
+  if arguments.length >= 2 
+    defaultData = arguments[1]
+  else 
+    defaultData = []
+  if arguments.length >= 3 
+    callback = arguments[3] 
+  else 
+    callback = ->
+  $this = this
+  if arguments.length > 0
+    @fetch "select count(1) from #{@table}", [], Meteor.bindEnvironment((error, result) ->
+      if error != undefined or result.rows[0].count == 0
+        if error != undefined
+          ##
+          startString = "CREATE TABLE IF NOT EXISTS \"#{$this.table}\" ("
+          item = undefined
+          subKey = undefined
+          valOperator = undefined
+          inputString = ''
 
-  for key of tableObj
-    inputString += " #{key} "
-    inputString += @_DataTypes[tableObj[key][0]]
-    if _.isArray(tableObj[key]) && tableObj[key].length > 1
-      for i in [1..(tableObj[key].length-1)]
-        item = tableObj[key][i]
-        if _.isObject(item)
-          subKey = Object.keys item
-          valOperator = @_TableConstraints[subKey]
-          inputString += " #{valOperator}#{item[subKey]}"
+          for key of tableObj
+            inputString += " #{key} "
+            inputString += $this._DataTypes[tableObj[key][0]]
+            if _.isArray(tableObj[key]) && tableObj[key].length > 1
+              for i in [1..(tableObj[key].length-1)]
+                item = tableObj[key][i]
+                if _.isObject(item)
+                  subKey = Object.keys item
+                  valOperator = $this._TableConstraints[subKey]
+                  inputString += " #{valOperator}#{item[subKey]}"
+                else
+                  inputString += " #{$this._TableConstraints[item]}"
+            inputString += ', '
+
+          startString += 'id varchar(255) primary key,' if inputString.indexOf(' id') is -1
+
+          watchTrigger = 'watched_table_trigger'
+          $this.inputString = """
+            #{startString}#{inputString} created_at TIMESTAMP default now());
+
+            CREATE OR REPLACE FUNCTION notify_trigger_#{$this.table}() RETURNS trigger AS $$
+            BEGIN
+              IF (TG_OP = 'DELETE') THEN
+                PERFORM pg_notify('notify_trigger_#{$this.table}', '[{"' || TG_TABLE_NAME || '":"' || OLD.id || '"}, { "operation": "' || TG_OP || '"}]');
+                RETURN old;
+              ELSIF (TG_OP = 'INSERT') THEN
+                PERFORM pg_notify('notify_trigger_#{$this.table}', '[{"' || TG_TABLE_NAME || '":"' || NEW.id || '"}, { "operation": "' || TG_OP || '"}]');
+                RETURN new;
+              ELSIF (TG_OP = 'UPDATE') THEN
+                PERFORM pg_notify('notify_trigger_#{$this.table}', '[{"' || TG_TABLE_NAME || '":"' || NEW.id || '"}, { "operation": "' || TG_OP || '"}]');
+                RETURN new;
+              END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+          """
+
+          $this.prevFunc = 'CREATE TABLE'
+          executeQuery = Meteor.wrapAsync($this.exec, $this)
+          executeQuery $this.inputString, [], Meteor.bindEnvironment( -> )
+          executeQuery "DROP TRIGGER IF EXISTS #{watchTrigger} ON #{$this.table};", []
+          executeQuery "CREATE TRIGGER #{watchTrigger} AFTER INSERT OR DELETE OR UPDATE ON #{$this.table} FOR EACH ROW EXECUTE PROCEDURE notify_trigger_#{$this.table}();", []
+
+          $this.clearAll()
+          ##
+          result = rows: [ { count: 0 } ]
+        #fill table with default data
+        if result.rows[0].count == 0 and defaultData.length > 0
+          $this.select().fetch Meteor.bindEnvironment((error, result) ->
+            if result.rowCount == 0
+              i = 0
+              while i < defaultData.length
+                $this.insert(defaultData[i]).save()
+                i++
+              callback(true)
+            return
+          )
         else
-          inputString += " #{@_TableConstraints[item]}"
-    inputString += ', '
-
-  startString += 'id varchar(255) primary key,' if inputString.indexOf(' id') is -1
-
-  watchTrigger = 'watched_table_trigger'
-  @inputString = """
-    #{startString}#{inputString} created_at TIMESTAMP default now());
-
-    CREATE OR REPLACE FUNCTION notify_trigger_#{@table}() RETURNS trigger AS $$
-    BEGIN
-      IF (TG_OP = 'DELETE') THEN
-        PERFORM pg_notify('notify_trigger_#{@table}', '[{"' || TG_TABLE_NAME || '":"' || OLD.id || '"}, { "operation": "' || TG_OP || '"}]');
-        RETURN old;
-      ELSIF (TG_OP = 'INSERT') THEN
-        PERFORM pg_notify('notify_trigger_#{@table}', '[{"' || TG_TABLE_NAME || '":"' || NEW.id || '"}, { "operation": "' || TG_OP || '"}]');
-        RETURN new;
-      ELSIF (TG_OP = 'UPDATE') THEN
-        PERFORM pg_notify('notify_trigger_#{@table}', '[{"' || TG_TABLE_NAME || '":"' || NEW.id || '"}, { "operation": "' || TG_OP || '"}]');
-        RETURN new;
-      END IF;
-    END;
-    $$ LANGUAGE plpgsql;
-  """
-
-
-  @prevFunc = 'CREATE TABLE'
-  executeQuery = Meteor.wrapAsync(@exec, @)
-  executeQuery @inputString, []
-  executeQuery "DROP TRIGGER IF EXISTS #{watchTrigger} ON #{@table};", []
-  executeQuery "CREATE TRIGGER #{watchTrigger} AFTER INSERT OR DELETE OR UPDATE ON #{@table} FOR EACH ROW EXECUTE PROCEDURE notify_trigger_#{@table}();", []
-
-  @clearAll()
+          callback(true)
+      else
+        callback(false)
+      return
+    )
   return
 
 ###*
@@ -136,11 +168,13 @@ SQL.Server::exec = (input, data, cb) ->
     if err and cb
       cb err, null
     console.log(err) if err
-
-    client.query input, data, (error, results) ->
-      done()
-      if cb
-        cb error, results
+    try
+      client.query input, data, (error, results) ->
+        done()
+        if cb
+          cb error, results
+    catch e
+      cb e, null
   @clearAll()
 
 ###*
