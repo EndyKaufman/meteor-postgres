@@ -65,12 +65,11 @@ SQL.Client::fetch = (server) ->
 SQL.Client::save = (client) ->
   starter = @updateString or @deleteString or @selectString
   input = if @inputString.length > 0 then @inputString else starter + @joinString + @whereString + ';'
-  
-  if client is 'client'
-    try
-      result = alasql(input, @dataArray)
-    catch e
-      @clearAll()
+
+  try
+    result = alasql(input, @dataArray)
+  catch e
+    @clearAll()
 
   unless client is 'client'
     input = if @inputString.length > 0 then @inputString else starter + @joinString + @whereString + ';'
