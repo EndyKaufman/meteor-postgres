@@ -209,7 +209,7 @@ SQL.Server::autoSelect = (sub) ->
 
   loadAutoSelectClient = (name, cb) ->
     # Function to load a new client, store it, and then send it to the function to add the watcher
-    client = new pg.Client(process.env.MP_POSTGRES)
+    client = new pg.Client(process.env.MP_POSTGRES or process.env.DATABASE_URL)
     client.on 'notification', (msg) -> self._notificationsDDP(sub, strings, msg)
     client.connect()
     clientHolder[name] = client
@@ -257,7 +257,7 @@ SQL.Server::_notificationsDDP = (sub, strings, msg) ->
 
   else if message[1].operation is 'UPDATE'
     selectString = "#{strings.select + strings.join} WHERE #{@table}.id = '#{message[0][@table]}'"
-    pg.connect process.env.MP_POSTGRES, (err, clientSub, done) ->
+    pg.connect process.env.MP_POSTGRES or process.env.DATABASE_URL, (err, clientSub, done) ->
       if err
         console.log(err, "in #{prevFunc} #{@table}")
 
@@ -279,7 +279,7 @@ SQL.Server::_notificationsDDP = (sub, strings, msg) ->
 
   else if message[1].operation is 'INSERT'
     selectString = "#{strings.select + strings.join} WHERE #{@table}.id = '#{message[0][@table]}'"
-    pg.connect process.env.MP_POSTGRES, (err, clientSub, done) ->
+    pg.connect process.env.MP_POSTGRES or process.env.DATABASE_URL, (err, clientSub, done) ->
       if err
         console.log(err, "in #{prevFunc} #{@table}")
 
