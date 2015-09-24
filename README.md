@@ -46,6 +46,11 @@ We use [Node-Postgres](https://github.com/brianc/node-postgres) on the server an
 Also thanks to [Meteor-Postgres](http://www.meteorpostgres.com/) as this project
 is based on their initial work, but which gets not longer maintained.
 
+### Change on this fork
+
+In the original version of the project was possible sql injection in the Fork is eliminated.
+Example of use : https://github.com/EndyKaufman/meteor-postgres/blob/master/simple-todo.js
+
 ### License
 
 Released under the MIT license. See the LICENSE file for more info.
