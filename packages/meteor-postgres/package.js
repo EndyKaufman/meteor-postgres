@@ -1,6 +1,6 @@
 Package.describe({
   name: 'endykaufman:meteor-postgres',
-  version: '0.2.4',
+  version: '0.2.5',
   summary: 'PostgreSQL support for Meteor',
   git: 'https://github.com/EndyKaufman/meteor-postgres',
   documentation: 'README.md'

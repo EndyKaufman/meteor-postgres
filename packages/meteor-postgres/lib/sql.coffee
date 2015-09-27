@@ -10,6 +10,11 @@ SQL.Sql = ->
 SQL.Sql::_DataTypes =
   $number: 'integer'
   $string: 'varchar(255)'
+  $char: 'varchar(1)'
+  $string40: 'varchar(40)'
+  $string128: 'varchar(128)'
+  $string512: 'varchar(512)'
+  $text: 'text'
   $json: 'json'
   $datetime: 'date'
   $float: 'decimal'
