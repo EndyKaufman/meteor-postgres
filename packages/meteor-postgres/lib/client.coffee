@@ -64,7 +64,7 @@ SQL.Client::fetch = (server) ->
 
 SQL.Client::save = (client) ->
   starter = @updateString or @deleteString or @selectString
-  input = if @inputString.length > 0 then @inputString else starter + @joinString + @whereString + ';'
+  input = if @inputString != undefined and @inputString.length > 0 then @inputString else starter + @joinString + @whereString + ';'
 
   try
     result = alasql(input, @dataArray)

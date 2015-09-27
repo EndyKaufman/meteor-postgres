@@ -96,7 +96,10 @@ SQL.Server::createTable = (tableObj) ->
 
           $this.prevFunc = 'CREATE TABLE'
           executeQuery = Meteor.wrapAsync($this.exec, $this)
-          executeQuery $this.inputString, [], Meteor.bindEnvironment( -> )
+          executeQuery $this.inputString, [], Meteor.bindEnvironment( (error, result) -> 
+            if error != undefined and error != null
+              console.log error
+          )
           executeQuery "DROP TRIGGER IF EXISTS #{watchTrigger} ON #{$this.table};", []
           executeQuery "CREATE TRIGGER #{watchTrigger} AFTER INSERT OR DELETE OR UPDATE ON #{$this.table} FOR EACH ROW EXECUTE PROCEDURE notify_trigger_#{$this.table}();", []
 
