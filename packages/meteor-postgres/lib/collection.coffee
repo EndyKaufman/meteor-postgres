@@ -92,24 +92,27 @@ registerStore = (connection, name) ->
   connection.registerStore name,
     beginUpdate: (batchSize, reset) ->
     update: (msg) ->
-      idSplit = msg.id.split(':')
-      sub = _.filter(buffer, (sub) -> sub.subscriptionId == idSplit[0] )[0].instance
-      if idSplit.length is 1 and msg.msg is 'added' and msg.fields and msg.fields.reset is true
-        # This message indicates a reset of a result set
-        sub.dispatchEvent 'reset', msg
-        sub.splice 0, sub.length
-      else
-        index = msg.id
-        oldRow = undefined
-        sub.dispatchEvent 'update', index, msg
-        switch msg.msg
-          when 'added'
-            sub.splice index, 0, msg.fields
-            sub.dispatchEvent msg.msg, index, msg.fields, msg.collection
-          when 'changed'
-            sub.splice index, 0, msg.fields
-            sub.dispatchEvent msg.msg, index, msg.fields, msg.collection
-      sub.changed()
+      idSplit = msg.id.split(':')      
+      sub_array = _.filter(buffer, (sub) -> sub.subscriptionId == idSplit[0] )
+      if sub_array.length > 0
+        sub = sub_array[0].instance
+        if idSplit.length is 1 and msg.msg is 'added' and msg.fields and msg.fields.reset is true
+          # This message indicates a reset of a result set
+          sub.dispatchEvent 'reset', msg
+          sub.splice 0, sub.length
+        else
+          index = msg.id
+          oldRow = undefined
+          sub.dispatchEvent 'update', index, msg
+          switch msg.msg
+            when 'added'
+              sub.splice index, 0, msg.fields
+              sub.dispatchEvent msg.msg, index, msg.fields, msg.collection
+            when 'changed'
+              sub.splice index, 0, msg.fields
+              sub.dispatchEvent msg.msg, index, msg.fields, msg.collection
+
+        sub.changed()
       return
     endUpdate: ->
     saveOriginals: ->
@@ -126,14 +129,16 @@ SQL.Collection::publish = (collname, pubFunc) ->
   methodObj = {}
   context = @
 
-  Meteor.publish collname, ->
-    # For this implementation to work you must call getCursor and provide a callback with the select
-    # statement that needs to be reactive. The 'caboose' on the chain of calls must be autoSelect
-    # and it must be passed the param 'sub' which is defining in the anon function.
-    # This is a limitation of our implementation and will be fixed in later versions
-    { _publishCursor: (sub) ->
-      pubFunc().autoSelect sub
- }
+  if Meteor.isServer
+    if @sub == undefined
+      Meteor.publish collname, (pubData) ->
+        # For this implementation to work you must call getCursor and provide a callback with the select
+        # statement that needs to be reactive. The 'caboose' on the chain of calls must be autoSelect
+        # and it must be passed the param 'sub' which is defining in the anon function.
+        # This is a limitation of our implementation and will be fixed in later versions
+        { _publishCursor: (sub) ->
+          pubFunc(pubData).autoSelect sub
+     }
   return
 
 SQL.Collection::_eventRoot = (eventName) ->

@@ -239,10 +239,15 @@ SQL.Server::autoSelect = (sub) ->
   strings.prevFunc = @prevFunc
 
   @autoSelectInput = if @autoSelectInput != '' then @autoSelectInput else @selectString + @joinString + @whereString + @orderString + @limitString + ';'
-
   @autoSelectData = if @autoSelectData != '' then @autoSelectData else @dataArray
+
   value = @autoSelectInput
-  @clearAll()
+  data = @autoSelectData
+
+  if sub != undefined
+    @sub = sub
+  else
+    sub = @sub
 
   loadAutoSelectClient = (name, cb) ->
     # Function to load a new client, store it, and then send it to the function to add the watcher
@@ -254,7 +259,7 @@ SQL.Server::autoSelect = (sub) ->
 
   autoSelectHelper = (client) ->
     # Selecting all from the table
-    client.query value, (error, results) ->
+    client.query value, data, (error, results) ->
       if error
         console.error "#{error.message} in autoSelect top"
       else
@@ -265,10 +270,13 @@ SQL.Server::autoSelect = (sub) ->
           fields:
             reset: false
             results: results.rows
+            value: value
+            data: data
 
     # Adding notification triggers
-    query = client.query "LISTEN notify_trigger_#{table}"
-    client.on 'notification', (msg) -> self._notificationsDDP(sub, strings, msg)
+    if @sub == undefined
+      query = client.query "LISTEN notify_trigger_#{table}"
+      client.on 'notification', (msg) -> self._notificationsDDP(sub, strings, msg)
 
   # Checking to see if this table already has a dedicated client before adding the listener
   if clientHolder[table]
